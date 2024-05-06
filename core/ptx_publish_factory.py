@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Dict, Any
 import logging
 import os
+import json
+from pathlib import Path
+import importlib.util
 
 logging.basicConfig(level=logging.WARNING)
 
@@ -144,24 +147,33 @@ class PtxPublishFactory:
     """
     def __init__(self) -> None:
         self._apps = dict()
+        self._mod_spec = None
+        with open(f"{Path(__file__).parent}/ptx_publish.conf") as file:
+            self._apps = json.load(file)
 
-    def register_app(self, app, pub_type, pub_method):
+    def register_app(self, app, pub_type):
         """
         * Registers the application as the key, and the publish object as the app.
         * Maintains a dictionary of the apps and the list of associated publish methods
-        """
+        """ 
         if app not in self._apps.keys():
-            self._apps[app] = dict()
-        self._apps[app][pub_type] = pub_method
+            raise ValueError("Given application isn't registered with the system")
+        
+        if pub_type not in self._apps[app].keys():
+            raise ValueError("Given publish method isn't registered with the system")
+        
+        self._mod_spec = importlib.util.find_spec(".".join(['ptx_publish', 'app_modules', app.lower(), self._apps[app][pub_type]]))
 
-    def create(self, app, pub_type, *args, **kwargs):
+    def create(self, *args, **kwargs):
         """
         * Creates the object which will be called in the client method to invoke the publish
         """
-        p_app = self._apps.get(app).get(pub_type)
-        if not p_app:
-            raise ValueError(pub_type)
-        return p_app(*args, **kwargs)
+        if self._mod_spec == None:
+            raise ValueError("Invalid module specified")
+        
+        mod = self._mod_spec.loader.load_module()
+        NodeBuilder = mod.PtxNodeBuilder()
+        return NodeBuilder(*args, **kwargs)
 
 
 if __name__ == "__main__":

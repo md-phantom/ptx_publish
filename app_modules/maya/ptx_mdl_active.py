@@ -42,7 +42,7 @@ class PtxMdlActivate(Activate):
         self.publish_state = 2
 
 
-class PtxMdlActiveBuilder:
+class PtxNodeBuilder:
     """
     * Factory for Creating an instance of the Maya Model Activate class.
     """

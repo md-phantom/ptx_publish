@@ -51,7 +51,7 @@ class PtxMdlPassive(Passive):
         au.import_gpu_cache(cache_path)
 
 
-class PtxMdlPassiveBuilder:
+class PtxNodeBuilder:
     """
     * Factory for Creating an instance of the Maya Model Activate class.
     """
