@@ -19,7 +19,7 @@ def generate_abc_command(node, out_file, start, end):
                 f'-root {node} -writeVisibility -stripNamespaces -eulerFilter -autoSubd -writeUVSets ' \
                 f'-dataFormat ogawa -file \'{out_file}\''
 
-    logging.info("cmd: {0}".format(abc_cmd))
+    logging.info(f"cmd: {abc_cmd}")
     return abc_cmd
 
 

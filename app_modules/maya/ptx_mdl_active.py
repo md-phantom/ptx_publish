@@ -27,7 +27,9 @@ class PtxMdlActivate(Activate):
         gpu_cache_node:pm.PyNode = None
         for node in pm.ls(assemblies=True):
             if node not in self.__ignore_assemblies__:
-                gpu_cache_node = node if len(node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)) > 0 else None
+                gpu_cache_node = node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)[0] if len(node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)) > 0 else None
+
+        logging.info(f"GPUCacheNode: {gpu_cache_node}")
 
         if gpu_cache_node == None:
             self.publish_state = 1
