@@ -73,3 +73,4 @@ def create_usd_stage(usd_path):
     usd_stage_node = pm.createNode("mayaUsdProxyShape", n=(f"{usd_name.stem}UsdShape"))
     usd_stage_node.setAttr("filePath", usd_path)
     pm.listRelatives(usd_stage_node, parent=True, fullPath=True)[0].rename(usd_name.stem)
+    return usd_stage_node
