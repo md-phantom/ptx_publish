@@ -14,7 +14,9 @@ def export_usd(file:str, append=False, chaser="", chaserArgs=[], convertMaterial
                materialsScopeName="Looks", melPerFrameCallback="", melPostCallback="",  mergeTransformAndShape=True, normalizeNurbs=False, parentScope="",
                pythonPerFrameCallback="", pythonPostCallback="", renderLayerMode="defaultLayer", renderableOnly=True,
                selection=False, shadingMode="useRegistry", staticSingleSample=False, stripNamespaces=False, verbose=False):
-    
+    """
+    * Export a USD file to disk
+    """
     # Load the mayaUsdPlugin if it's not loaded
     if not pm.pluginInfo("mayaUsdPlugin", q=True, l=True):
         pm.loadPlugin("mayaUsdPlugin")
@@ -32,7 +34,9 @@ def export_usd(file:str, append=False, chaser="", chaserArgs=[], convertMaterial
 def import_usd(file:str, apiSchema="", chaser="", chaserArgs=[], excludePrimVar="", frameRange=[1, 1], importInstances="", importUSDZTextures=False,
                importUSDZTexturesFilePath="", metadata="", parent="", primPath="", preferredMaterial="", readAnimData=False, shadingMode=[],
                useAnimationCache=False, variant=[], verbose=False):
-    
+    """
+    * Import a USD file from disk into the scene
+    """
     # Load the mayaUsdPlugin if it's not loaded
     if not pm.pluginInfo("mayaUsdPlugin", q=True, l=True):
         pm.loadPlugin("mayaUsdPlugin")
@@ -42,6 +46,9 @@ def import_usd(file:str, apiSchema="", chaser="", chaserArgs=[], excludePrimVar=
 
 
 def nativize_stage(usd_stage, **kwargs):
+    """
+    * Take the usd_stage passed here and import the usd file associated with it into the scene
+    """
     if not usd_stage:
         logging.error("No stage passed to nativize")
 
@@ -55,3 +62,14 @@ def nativize_stage(usd_stage, **kwargs):
 
     # delete the USD stage
     pm.delete(usd_stage.listRelatives(parent=True, fullPath=True)[0])
+
+
+def create_usd_stage(usd_path):
+    """
+    * Refer a usd file into the maya scene as a usd stage
+    """
+    # Create the usd stage node and set the filePath to the usd path
+    usd_name = Path(usd_path)
+    usd_stage_node = pm.createNode("mayaUsdProxyShape", n=(f"{usd_name.stem}UsdShape"))
+    usd_stage_node.setAttr("filePath", usd_path)
+    pm.listRelatives(usd_stage_node, parent=True, fullPath=True)[0].rename(usd_name.stem)

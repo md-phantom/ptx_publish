@@ -37,7 +37,7 @@ def import_gpu_cache(cache_path):
     """
     # Create the gpu cache node and set the cacheFileName to the gpu cache path
     gpu_cache_name = Path(cache_path)
-    gpu_cache_node = pm.createNode("gpuCache", n=("{0}_gpuCache".format(gpu_cache_name.stem)))
+    gpu_cache_node = pm.createNode("gpuCache", n=(f"{gpu_cache_name.stem}GpuCacheShape"))
     gpu_cache_node.setAttr("cacheFileName", cache_path)
     pm.listRelatives(gpu_cache_node, parent=True, fullPath=True)[0].rename(gpu_cache_name.stem)
 
