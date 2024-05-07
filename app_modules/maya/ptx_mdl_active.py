@@ -1,11 +1,8 @@
 import pymel.core as pm
 from ...core.ptx_publish_factory import Activate, AssetInfo, Passive
 from .utils import alembic_utils as au
-from dataclasses import dataclass
-from typing import List
+
 import logging
-import os
-from pathlib import Path
 
 
 class PtxMdlActivate(Activate):

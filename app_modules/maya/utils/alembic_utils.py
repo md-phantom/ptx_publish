@@ -40,6 +40,7 @@ def import_gpu_cache(cache_path):
     gpu_cache_node = pm.createNode("gpuCache", n=(f"{gpu_cache_name.stem}GpuCacheShape"))
     gpu_cache_node.setAttr("cacheFileName", cache_path)
     pm.listRelatives(gpu_cache_node, parent=True, fullPath=True)[0].rename(gpu_cache_name.stem)
+    return gpu_cache_node
 
 
 def gpu_cache_to_geom(gpu_cache_node):
