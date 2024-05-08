@@ -17,7 +17,7 @@ class MayaGpuCache(MayaProxyProcessBase):
         self.out_node = au.import_gpu_cache(self.proxy_path)
         self.process_state = 2
 
-    def rerout_proxy(self, new_path: str):
+    def reroute_proxy(self, new_path: str):
         if new_path == "":
             logging.warning("No new path specified.")
             return

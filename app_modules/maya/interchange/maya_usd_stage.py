@@ -17,7 +17,7 @@ class MayaUsdStage(MayaProxyProcessBase):
         self.out_node = uu.create_usd_stage(self.proxy_path)        
         self.process_state = 2
 
-    def rerout_proxy(self, new_path: str):
+    def reroute_proxy(self, new_path: str):
         self.out_node.setAttr("filePath", new_path)
         self.proxy_path = new_path
 

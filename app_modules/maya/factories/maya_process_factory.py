@@ -114,7 +114,7 @@ class MayaProxyProcessBase(MayaProcessBase):
         self.__out_node = pm.PyNode(node)
     
     @abstractmethod
-    def rerout_proxy(self, new_path:str):
+    def reroute_proxy(self, new_path:str):
         pass
 
 
