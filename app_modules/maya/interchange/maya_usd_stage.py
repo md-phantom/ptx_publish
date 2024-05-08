@@ -1,12 +1,11 @@
 import pymel.core as pm
-from ..factories.maya_process_factory import MayaProcessBase
+from ..factories.maya_process_factory import MayaProxyProcessBase
 from ..utils import usd_utils as uu
 
 import logging
-from pathlib import Path
 
 
-class MayaUsdStage(MayaProcessBase):
+class MayaUsdStage(MayaProxyProcessBase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.usd_path = kwargs.get('usd_path') if 'usd_path' in kwargs.keys() else ''
@@ -18,6 +17,9 @@ class MayaUsdStage(MayaProcessBase):
 
         self.out_node = uu.create_usd_stage(self.usd_path)        
         self.process_state = 2
+
+    def rerout_proxy(self, new_path: str):
+        self.out_node.setAttr("filePath", new_path)
 
 
 class ProcessNodeBuilder:

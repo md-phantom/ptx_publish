@@ -16,7 +16,18 @@ class MayaUsdImporter(MayaProcessBase):
             self.process_state = 0
             logging.error("No USD stage was specified.")
 
-        uu.nativize_stage(self.usd_stage)
+        stage_node = None
+        if self.usd_stage.nodeType() == "transform":
+            if len(self.usd_stage.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)) > 0:
+                stage_node = self.usd_stage.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)[0]
+        elif self.usd_stage.nodeType() == "mayaUsdProxyShape":
+            stage_node = self.usd_stage
+
+        if not stage_node:
+            self.process_state = 0
+            logging.error("No valid Maya USD Proxy Shape Node found in selection.")
+
+        uu.nativize_stage(stage_node)
         
         self.process_state = 2
 

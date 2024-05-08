@@ -12,11 +12,22 @@ class MayaGpuCacheImporter(MayaProcessBase):
         self.gpu_cache_node = kwargs.get('root_node') if 'root_node' in kwargs.keys() else None
 
     def process(self):
-        if not self.root_node:
+        if not self.gpu_cache_node:
             self.process_state = 0
             logging.error("Root node not specified. Please select a root node to cache.")
 
-        au.gpu_cache_to_geom(self.gpu_cache_node)
+        cache_node = None
+        if self.gpu_cache_node.nodeType() == "transform":
+            if len(self.gpu_cache_node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)) > 0:
+                cache_node = self.gpu_cache_node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)[0]
+        elif self.gpu_cache_node.nodeType() == "gpuCache":
+            cache_node = self.gpu_cache_node
+
+        if not cache_node:
+            self.process_state = 0
+            logging.error("No valid GPU Cache found in selection.")
+        
+        au.gpu_cache_to_geom(cache_node)
         self.process_state = 2
 
 

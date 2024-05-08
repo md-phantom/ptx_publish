@@ -1,5 +1,6 @@
 import pymel.core as pm
-from ...core.ptx_publish_factory import Activate, AssetInfo, Passive
+from ...core.ptx_publish_factory import Activate, AssetInfo
+from .factories import maya_process_factory as mpf
 from .utils import alembic_utils as au
 
 import logging
@@ -14,31 +15,29 @@ class PtxMdlActivate(Activate):
     def __init__(self, *args, **kwargs):
         super().__init__(**kwargs)
         self.asset = AssetInfo(*args)
+        self._process = kwargs.get('use_process') if 'use_process' in kwargs.keys() else 'gpu'
 
-    def make_active(self):
-        if self.is_asset_locked():
+    def make_active(self):        
+        prc_factory = mpf.MayaProcessFactory()
+        prc_factory.register_process("importers", self._process)
+
+        cache_node:pm.PyNode = pm.ls(sl=True)[0] if len(pm.ls(sl=True)) > 0 else None
+        if cache_node == None:
+            all_assemblies = [node for node in pm.ls(assemblies=True) if node not in self.__ignore_assemblies__]
+            cache_node = all_assemblies[0] if len(all_assemblies) > 0 else None
+
+        if cache_node == None:
             self.publish_state = 0
-            logging.error("Asset is already locked. Aborting")
+            logging.error("Unable to find any GPU Cache node")
             return
         
-        gpu_cache_node:pm.PyNode = None
-        for node in pm.ls(assemblies=True):
-            if node not in self.__ignore_assemblies__:
-                gpu_cache_node = node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)[0] if len(node.listRelatives(allDescendents=True, typ='gpuCache', fullPath=True)) > 0 else None
+        logging.info(f"CacheNode: {cache_node}")
 
-        logging.info(f"GPUCacheNode: {gpu_cache_node}")
-
-        if gpu_cache_node == None:
-            self.publish_state = 1
-            logging.warning("Unable to find any GPU Cache node")
-            return
-
+        importer = prc_factory.create(root_node=cache_node)
         # Convert the gpu_cache to normal geometry
-        au.gpu_cache_to_geom(gpu_cache_node)
-        # Write out the activated info with the new lock owner
-        self.generate_lock_info()
+        importer.process()
 
-        self.publish_state = 2
+        self.publish_state = importer.process_state
 
 
 class PtxNodeBuilder:

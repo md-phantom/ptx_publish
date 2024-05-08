@@ -15,7 +15,7 @@ class MayaProcessBase(ABC):
     * Abstract class to define a Maya Process Node
     """
     def __init__(self, *args, **kwargs) -> None:
-        super(*args, **kwargs).__init__()
+        super().__init__()
 
         # Property to store the output we get out of this process
         # Should ideally be a PyNode
@@ -55,6 +55,16 @@ class MayaProcessBase(ABC):
         pass
 
 
+class MayaProxyProcessBase(MayaProcessBase):
+    """
+    * Abstract class to handle proxies created in the scene. Adds an additional method
+    * to reroute proxy paths once the files have been sent to the storage server
+    """
+    @abstractmethod
+    def rerout_proxy(self, new_path:str):
+        pass
+
+
 class MayaProcessFactory:
     """
     * The "Factory" class to return an initialized object of the particular type of process
@@ -65,14 +75,17 @@ class MayaProcessFactory:
         with open(f"{Path(__file__).parent}/maya_processes.conf") as file:
             self._processes = json.load(file)
 
-    def register_process(self, proc):
+    def register_process(self, proc_type, proc):
         """
         * Finds the module spec specified by the proc.
         """ 
-        if proc not in self._processes.keys():
-            raise ValueError("Given application isn't registered with the system")
+        if proc_type not in self._processes.keys():
+            raise ValueError("Given process type isn't registered with the system")
+        
+        if proc not in self._processes[proc_type].keys():
+            raise ValueError("Given process isn't registered with the system")
                 
-        self._mod_spec = importlib.util.find_spec(".".join(['ptx_publish', 'app_modules', 'maya', 'interchange', self._processes[proc]]))
+        self._mod_spec = importlib.util.find_spec(".".join(['ptx_publish', 'app_modules', 'maya', 'interchange', self._processes[proc_type][proc]]))
 
     def create(self, *args, **kwargs):
         """
