@@ -17,12 +17,15 @@ class PtxMdlActivate(Activate):
         self.asset = AssetInfo(*args)
         self._process = kwargs.get('use_process') if 'use_process' in kwargs.keys() else 'abc'
 
-    def make_active(self):        
+    def make_active(self):
+        # Get the selected node. If nothing is selected, just grab the first assembky
+        # which is not in the __ignore_assemblies__ list        
         cache_node:pm.PyNode = pm.ls(sl=True)[0] if len(pm.ls(sl=True)) > 0 else None
         if cache_node == None:
             all_assemblies = [node for node in pm.ls(assemblies=True) if node not in self.__ignore_assemblies__]
             cache_node = all_assemblies[0] if len(all_assemblies) > 0 else None
 
+        # If the cache node is still invalid, return with an error
         if cache_node == None:
             self.publish_state = 0
             logging.error("Unable to find any GPU Cache node")
@@ -30,11 +33,13 @@ class PtxMdlActivate(Activate):
         
         logging.info(f"CacheNode: {cache_node}")
 
+        # Create the process factory
         prc_factory = mpf.MayaProcessFactory()
+        
+        # Register the geometry import process, create the node and run it
+        # to convert the proxy to native geometry
         imp_mod = prc_factory.register_process("importers", self._process)
-
         importer = prc_factory.create(imp_mod, proxy_node=cache_node)
-        # Convert the gpu_cache to normal geometry
         importer.process()
 
         self.publish_state = importer.process_state

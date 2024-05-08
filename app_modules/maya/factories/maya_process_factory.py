@@ -38,7 +38,7 @@ class MayaProcessBase(ABC):
     @abstractmethod
     def process(self):
         """
-        * Abstract method to run the process node
+        * Abstract method to run the process defined in the node
         """
         pass
 
@@ -46,13 +46,24 @@ class MayaProcessBase(ABC):
 class MayaExportProcessBase(MayaProcessBase):
     """
     * Abstract class to handle Maya Exporters
+    * Default Properties:
+    *   @param export_path: type str: The path to which the exporting happens
+    *   @param root_node: type pm.PyNode: The root node to process for the export
+    *   @param frame_range: type [int, int]: The frame ranges of the export
     """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+
+        # Property to store the export path
         self.__export_path:str = ''
+
+        # Property to store the root node
         self.__root_node = None
+
+        # Property to store the frame range
         self.__frame_range = []
 
+        # Initialize the properties to some default values
         self.export_path = kwargs.get('export_path') if 'export_path' in kwargs.keys() else ''
         self.root_node = kwargs.get('root_node') if 'root_node' in kwargs.keys() else None
         self.frame_range = kwargs.get('frame_range') if 'frame_range' in kwargs.keys() else [1, 1]
@@ -86,6 +97,7 @@ class MayaProxyProcessBase(MayaProcessBase):
     """
     * Abstract class to handle proxies created in the scene. Adds an additional method
     * to reroute proxy paths once the files have been sent to the storage server
+    *   @param proxy_path: type str: The path at which the proxy is stored
     """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
@@ -95,6 +107,7 @@ class MayaProxyProcessBase(MayaProcessBase):
         # Should ideally be a PyNode
         self.__out_node: pm.PyNode = None
 
+        # Initialize the proxy path
         self.proxy_path = kwargs.get('proxy_path') if 'proxy_path' in kwargs.keys() else ''
 
     @property
@@ -115,17 +128,24 @@ class MayaProxyProcessBase(MayaProcessBase):
     
     @abstractmethod
     def reroute_proxy(self, new_path:str):
+        """
+        * Abstract method to reroute the proxy paths once proxies have
+        * been sent to the server
+        """
         pass
 
 
 class MayaImportProxyProcessBase(MayaProcessBase):
     """
     * Abstract class to handle nativizing of proxy geometries in the Maya scene.
+    *   @param proxy_node: type pm.PyNode: The proxy node whose geometries need to be imported
     """
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
+        # Property to store the proxy node in the scene
         self.__proxy_node: pm.PyNode = None
 
+        # Initialize the proxy node to a default property
         self.proxy_node = kwargs.get('proxy_node') if 'proxy_node' in kwargs.keys() else None
 
     @property

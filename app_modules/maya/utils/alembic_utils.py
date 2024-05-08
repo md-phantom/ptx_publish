@@ -6,18 +6,38 @@ from pathlib import Path
 import logging
 
 
-def generate_abc_command(node, out_file, start, end):
+def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=True, uv_write=True, write_color_sets=True, write_face_sets=True,
+                         whole_frame_geo=True, world_space=True, write_visibility=True, strip_namespaces=True, euler_filter=True, auto_subd=True,
+                         write_uv_sets=True, data_format="ogawa"):
     """
     * @param node: type str: Root node used for caching
     * @param out_file: type str: Path for the Alembic cache storage
     * @param start: type int: Start frame for Alembic cache
     * @param end: type int: End frame for Alembic cache
     * Generate the command template for running the alembic cache command in maya
-    """
-    abc_cmd = f'-frameRange {start} {end} -attr project -attr scope -attr taskType -attr artist -noNormals ' \
-                '-uvWrite -writeColorSets -writeFaceSets -wholeFrameGeo -worldSpace ' \
-                f'-root {node} -writeVisibility -stripNamespaces -eulerFilter -autoSubd -writeUVSets ' \
-                f'-dataFormat ogawa -file \'{out_file}\''
+    """    
+    # Create the abc command with the frameRange
+    abc_cmd = f"-frameRange {start} {end} -root {node} -dataFormat {data_format}"
+
+    # Add any extra attributes, if required
+    for attr in attr_list:
+        abc_cmd += f" -attr {attr}"
+
+    # Add in the bool flags if needed
+    abc_cmd = abc_cmd + " -noNormals" if no_normals else abc_cmd
+    abc_cmd = abc_cmd + " -uvWrite" if uv_write else abc_cmd
+    abc_cmd = abc_cmd + " -writeColorSets" if write_color_sets else abc_cmd
+    abc_cmd = abc_cmd + " -writeFaceSets" if write_face_sets else abc_cmd
+    abc_cmd = abc_cmd + " -wholeFrameGeo" if whole_frame_geo else abc_cmd
+    abc_cmd = abc_cmd + " -worldSpace" if world_space else abc_cmd
+    abc_cmd = abc_cmd + " -writeVisibility" if write_visibility else abc_cmd
+    abc_cmd = abc_cmd + " -stripNamespaces" if strip_namespaces else abc_cmd
+    abc_cmd = abc_cmd + " -eulerFilter" if euler_filter else abc_cmd
+    abc_cmd = abc_cmd + " -autoSubd" if auto_subd else abc_cmd
+    abc_cmd = abc_cmd + " -writeUVSets" if write_uv_sets else abc_cmd
+
+    # Add in the file flag
+    abc_cmd += f" -file \'{out_file}\'"
 
     logging.info(f"cmd: {abc_cmd}")
     return abc_cmd
