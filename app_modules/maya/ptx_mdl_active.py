@@ -18,9 +18,6 @@ class PtxMdlActivate(Activate):
         self._process = kwargs.get('use_process') if 'use_process' in kwargs.keys() else 'gpu'
 
     def make_active(self):        
-        prc_factory = mpf.MayaProcessFactory()
-        prc_factory.register_process("importers", self._process)
-
         cache_node:pm.PyNode = pm.ls(sl=True)[0] if len(pm.ls(sl=True)) > 0 else None
         if cache_node == None:
             all_assemblies = [node for node in pm.ls(assemblies=True) if node not in self.__ignore_assemblies__]
@@ -33,7 +30,10 @@ class PtxMdlActivate(Activate):
         
         logging.info(f"CacheNode: {cache_node}")
 
-        importer = prc_factory.create(root_node=cache_node)
+        prc_factory = mpf.MayaProcessFactory()
+        imp_mod = prc_factory.register_process("importers", self._process)
+
+        importer = prc_factory.create(imp_mod, root_node=cache_node)
         # Convert the gpu_cache to normal geometry
         importer.process()
 

@@ -9,10 +9,10 @@ from pathlib import Path
 class MayaGpuCache(MayaProxyProcessBase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.cache_path = kwargs.get('export_path') if 'export_path' in kwargs.keys() else ''
+        self.cache_path = kwargs.get('cache_path') if 'cache_path' in kwargs.keys() else ''
 
     def process(self):
-        if self.export_path == "":
+        if self.cache_path == "":
             self.process_state = 0
             logging.error("The alembic path wasn't specified")
 

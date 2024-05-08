@@ -71,7 +71,6 @@ class MayaProcessFactory:
     """
     def __init__(self) -> None:
         self._processes = dict()
-        self._mod_spec = None
         with open(f"{Path(__file__).parent}/maya_processes.conf") as file:
             self._processes = json.load(file)
 
@@ -85,15 +84,15 @@ class MayaProcessFactory:
         if proc not in self._processes[proc_type].keys():
             raise ValueError("Given process isn't registered with the system")
                 
-        self._mod_spec = importlib.util.find_spec(".".join(['ptx_publish', 'app_modules', 'maya', 'interchange', self._processes[proc_type][proc]]))
+        return importlib.util.find_spec(".".join(['ptx_publish', 'app_modules', 'maya', 'interchange', self._processes[proc_type][proc]]))
 
-    def create(self, *args, **kwargs):
+    def create(self, mod_spec, *args, **kwargs):
         """
         * Creates the object which will be called in the client method to invoke the process
         """
-        if self._mod_spec == None:
+        if mod_spec == None:
             raise ValueError("Invalid module specified")
         
-        mod = self._mod_spec.loader.load_module()
+        mod = mod_spec.loader.load_module()
         NodeBuilder = mod.ProcessNodeBuilder()
         return NodeBuilder(*args, **kwargs)

@@ -22,7 +22,7 @@ class MayaAlembicExporter(MayaProcessBase):
             self.process_state = 1
             logging.warning("Export path wasn't specified. Using the current file's location as the export path.")
             f_path = Path(pm.sceneName())
-            self.export_path = f'{f_path.parent}/{f_path.stem}.abc'
+            self.export_path = f'{f_path.parent.as_posix()}/{f_path.stem}.abc'
 
         abc_cmd = au.generate_abc_command(self.root_node, self.export_path, self.frame_range[0], self.frame_range[1])
         au.export_abc(abc_cmd)

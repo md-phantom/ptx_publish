@@ -35,13 +35,26 @@ class PtxMdlPassive(Passive):
         # The root is the first top node which is not in the default top level nodes
         root = [node for node in pm.ls(assemblies=True) if node not in self.__ignore_assemblies__][0]
         
+        # Create the process factory
         prc_factory = mpf.MayaProcessFactory()
-        prc_factory.register_process("exporters", self._process)
-
-        exporter = prc_factory.create(root_node=root)
+        # Register the export process, create the node and export 
+        exp_mod = prc_factory.register_process("exporters", self._process)
+        exporter = prc_factory.create(exp_mod, root_node=root)
         exporter.process()
 
-        self.publish_state = exporter.process_state
+        if exporter.process_state == 0:
+            self.publish_state = 0
+            logging.error("Publish Failed")
+
+        self.export_path = exporter.export_path
+
+        prx_mod = prc_factory.register_process("proxies", self._process)
+        proxy = prc_factory.create(prx_mod, cache_path=self.export_path, use_process=self._process)
+        proxy.process()
+
+        pm.delete(root)
+
+        self.publish_state = min(exporter.process_state, proxy.process_state)
 
     def reroute_proxy(self, new_path: str):
         pass
