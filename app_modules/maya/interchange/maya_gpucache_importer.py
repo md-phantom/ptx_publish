@@ -13,7 +13,7 @@ class MayaGpuCacheImporter(MayaImportProxyProcessBase):
     def process(self):
         if not self.proxy_node:
             self.process_state = 0
-            logging.error("Root node not specified. Please select a root node to cache.")
+            logging.error("Proxy node not specified.")
 
         cache_node = None
         if self.proxy_node.nodeType() == "transform":

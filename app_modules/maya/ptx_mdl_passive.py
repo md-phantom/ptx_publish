@@ -29,6 +29,7 @@ class PtxMdlPassive(Passive):
         super().__init__(*args, **kwargs)
         self.asset = AssetInfo(*args)
         self.export_path:str = kwargs.get('export_path') if 'export_path' in kwargs.keys() else ''
+        self.frame_range = kwargs.get('frame_range') if 'frame_range' in kwargs.keys() else [1, 1]
         self._process = kwargs.get('use_process') if 'use_process' in kwargs.keys() else 'abc'
 
     def make_passive(self):
@@ -39,7 +40,7 @@ class PtxMdlPassive(Passive):
         prc_factory = mpf.MayaProcessFactory()
         # Register the export process, create the node and export 
         exp_mod = prc_factory.register_process("exporters", self._process)
-        exporter = prc_factory.create(exp_mod, root_node=root)
+        exporter = prc_factory.create(exp_mod, root_node=root, export_path = self.export_path, frame_range=self.frame_range)
         exporter.process()
 
         if exporter.process_state == 0:
@@ -49,7 +50,7 @@ class PtxMdlPassive(Passive):
         self.export_path = exporter.export_path
 
         prx_mod = prc_factory.register_process("proxies", self._process)
-        proxy = prc_factory.create(prx_mod, cache_path=self.export_path, use_process=self._process)
+        proxy = prc_factory.create(prx_mod, proxy_path=self.export_path, use_process=self._process)
         proxy.process()
 
         pm.delete(root)
