@@ -1,7 +1,6 @@
 import pymel.core as pm
 from ...core.ptx_publish_factory import Activate, AssetInfo
 from .factories import maya_process_factory as mpf
-from .utils import alembic_utils as au
 
 import logging
 
