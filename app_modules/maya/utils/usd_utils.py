@@ -31,9 +31,9 @@ def export_usd(file:str, append=False, chaser="", chaserArgs=[], convertMaterial
     pm.mayaUSDExport(**locals())
 
 
-def import_usd(file:str, apiSchema="", chaser="", chaserArgs=[], excludePrimVar="", frameRange=[1, 1], importInstances="", importUSDZTextures=False,
+def import_usd(file:str, apiSchema="", chaser="", chaserArgs=[], excludePrimvar="", frameRange=[1, 1], importInstances="", importUSDZTextures=False,
                importUSDZTexturesFilePath="", metadata="", parent="", primPath="", preferredMaterial="", readAnimData=False, shadingMode=[],
-               useAnimationCache=False, variant=[], verbose=False):
+               useAsAnimationCache=False, variant=[], verbose=False):
     """
     * Import a USD file from disk into the scene
     """
