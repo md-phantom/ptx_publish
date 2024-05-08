@@ -1,22 +1,8 @@
 import pymel.core as pm
-from ...core.ptx_publish_factory import Activate, AssetInfo, Passive
+from ...core.ptx_publish_factory import AssetInfo, Passive
 from .factories import maya_process_factory as mpf
-from .utils import alembic_utils as au
-from dataclasses import dataclass
-from typing import List
+
 import logging
-import os
-from pathlib import Path
-
-
-@dataclass
-class MdlAssetInfo():
-    """
-    * Overriding AssetInfo to include the name of the root node, and store the list of 
-    * geometries under the root node that will be exported out.
-    """
-    root_node: str
-    geom_list: List[str]
 
 
 class PtxMdlPassive(Passive):
