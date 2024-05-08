@@ -17,24 +17,12 @@ class MayaProcessBase(ABC):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__()
 
-        # Property to store the output we get out of this process
-        # Should ideally be a PyNode
-        self.__out_node: pm.PyNode = None
-
         # Property to store the current state of the process
         # -1: The process hasn't started
         #  0: The process failed
         #  1: The process completed with warnings
         #  2: The process succeeded
         self.__process_state: int = -1
-
-    @property
-    def out_node(self):
-        return self.__out_node
-    
-    @out_node.setter
-    def out_node(self, node):
-        self.__out_node = pm.PyNode(node)
 
     @property
     def process_state(self):
@@ -55,14 +43,98 @@ class MayaProcessBase(ABC):
         pass
 
 
+class MayaExportProcessBase(MayaProcessBase):
+    """
+    * Abstract class to handle Maya Exporters
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.__export_path:str = ''
+        self.__root_node = None
+        self.__frame_range = []
+
+        self.export_path = kwargs.get('export_path') if 'export_path' in kwargs.keys() else ''
+        self.root_node = kwargs.get('root_node') if 'root_node' in kwargs.keys() else None
+        self.frame_range = kwargs.get('frame_range') if 'frame_range' in kwargs.keys() else [1, 1]
+
+    @property
+    def export_path(self):
+        return self.__export_path
+    
+    @export_path.setter
+    def export_path(self, val:str):
+        self.__export_path = Path(val).as_posix()
+
+    @property
+    def root_node(self):
+        return self.__root_node
+    
+    @root_node.setter
+    def root_node(self, node):
+        self.__root_node = node
+
+    @property
+    def frame_range(self):
+        return self.__frame_range
+    
+    @frame_range.setter
+    def frame_range(self, range:list):
+        self.__frame_range = list(range)
+
+
 class MayaProxyProcessBase(MayaProcessBase):
     """
     * Abstract class to handle proxies created in the scene. Adds an additional method
     * to reroute proxy paths once the files have been sent to the storage server
     """
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.__proxy_path:str = ""
+
+        # Property to store the output we get out of this process
+        # Should ideally be a PyNode
+        self.__out_node: pm.PyNode = None
+
+        self.proxy_path = kwargs.get('proxy_path') if 'proxy_path' in kwargs.keys() else ''
+
+    @property
+    def proxy_path(self):
+        return self.__proxy_path
+    
+    @proxy_path.setter
+    def proxy_path(self, val:str):
+        self.__proxy_path = Path(val).as_posix()
+
+    @property
+    def out_node(self):
+        return self.__out_node
+    
+    @out_node.setter
+    def out_node(self, node):
+        self.__out_node = pm.PyNode(node)
+    
     @abstractmethod
     def rerout_proxy(self, new_path:str):
         pass
+
+
+class MayaImportProxyProcessBase(MayaProcessBase):
+    """
+    * Abstract class to handle nativizing of proxy geometries in the Maya scene.
+    """
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.__proxy_node: pm.PyNode = None
+
+        self.proxy_node = kwargs.get('proxy_node') if 'proxy_node' in kwargs.keys() else None
+
+    @property
+    def proxy_node(self):
+        return self.__proxy_node
+    
+    @proxy_node.setter
+    def proxy_node(self, node:pm.PyNode):
+        self.__proxy_node = node
 
 
 class MayaProcessFactory:

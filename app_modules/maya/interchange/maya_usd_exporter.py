@@ -1,21 +1,18 @@
 import pymel.core as pm
-from ..factories.maya_process_factory import MayaProcessBase
+from ..factories.maya_process_factory import MayaExportProcessBase
 from ..utils import usd_utils as uu
 
 import logging
 from pathlib import Path
 
 
-class MayaUsdExporter(MayaProcessBase):
+class MayaUsdExporter(MayaExportProcessBase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.root_node = kwargs.get('root_node') if 'root_node' in kwargs.keys() else None
-        self.export_path = kwargs.get('export_path') if 'export_path' in kwargs.keys() else ''
         self.append = kwargs.get('append') if 'append' in kwargs.keys() else False
         self.convert_materials_to = kwargs.get('convertMaterialsTo') if 'convertMaterialsTo' in kwargs.keys() else 'UsdPreviewSurface'
         self.default_mesh_scheme = kwargs.get('defaultMeshScheme') if 'defaultMeshScheme' in kwargs.keys() else 'catmullClark'
         self.default_usd_format = kwargs.get('defaultUSDFormat') if 'defaultUSDFormat' in kwargs.keys() else 'usda'
-        self.frame_range = kwargs.get('frameRange') if 'frameRange' in kwargs.keys() else [1, 1]
         self.selection = kwargs.get('selection') if 'selection' in kwargs.keys() else False 
 
     def process(self):

@@ -1,27 +1,25 @@
 import pymel.core as pm
-from ..factories.maya_process_factory import MayaProcessBase
+from ..factories.maya_process_factory import MayaImportProxyProcessBase
 from ..utils import usd_utils as uu
 
 import logging
-from pathlib import Path
 
 
-class MayaUsdImporter(MayaProcessBase):
+class MayaUsdImporter(MayaImportProxyProcessBase):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.usd_stage = kwargs.get('usd_stage_node') if 'usd_stage_node' in kwargs.keys() else None
 
     def process(self):
-        if self.usd_stage == None:
+        if self.proxy_node == None:
             self.process_state = 0
             logging.error("No USD stage was specified.")
 
         stage_node = None
-        if self.usd_stage.nodeType() == "transform":
-            if len(self.usd_stage.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)) > 0:
-                stage_node = self.usd_stage.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)[0]
-        elif self.usd_stage.nodeType() == "mayaUsdProxyShape":
-            stage_node = self.usd_stage
+        if self.proxy_node.nodeType() == "transform":
+            if len(self.proxy_node.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)) > 0:
+                stage_node = self.proxy_node.listRelatives(allDescendents=True, typ='mayaUsdProxyShape', fullPath=True)[0]
+        elif self.proxy_node.nodeType() == "mayaUsdProxyShape":
+            stage_node = self.proxy_node
 
         if not stage_node:
             self.process_state = 0
