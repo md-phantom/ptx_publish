@@ -35,44 +35,44 @@ class Publish(ABC):
         
         # Property to store the process related information we may want to 
         # write out to a database or a file as required
-        self.__publish_info__: Dict = {}
+        self.__publish_info: Dict = {}
 
         # Property to store the current state of the process
         # -1: The process hasn't started
         #  0: The process failed
         #  1: The process completed with warnings
         #  2: The process succeeded
-        self.__publish_state__: int = -1
+        self.__publish_state: int = -1
 
         # Property to store the processed out file
-        self.__out_file__: str = ""
+        self.__out_file: str = ""
 
     @property
     def out_file(self):
-        return self.__out_file__
+        return self.__out_file
     
     @out_file.setter
     def out_file(self, val):
-        self.__out_file__ = val
+        self.__out_file = val
 
     @property
     def publish_state(self):
-        return self.__publish_state__
+        return self.__publish_state
     
     @publish_state.setter
     def publish_state(self, val: int):
         if val not in range(-1, 3):
             logging.error("Supplied value is not in the range -1 to 2. Please supply a value in this range only.")
 
-        self.__publish_state__ = val
+        self.__publish_state = val
 
     @property
     def publish_info(self):
-        return self.__publish_info__
+        return self.__publish_info
     
     @publish_info.setter
     def publish_info(self, key: str, val: Any):
-        self.__publish_info__[key] = val
+        self.__publish_info[key] = val
 
     @abstractmethod
     def publish(self):
@@ -171,3 +171,5 @@ if __name__ == "__main__":
     P = ExamplePublish()
     P.publish_info[1] = {2: "val2", 3: "val3"}
     print(P.publish_info[1][2])
+    import os
+    
