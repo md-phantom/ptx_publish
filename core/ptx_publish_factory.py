@@ -19,8 +19,6 @@ class AssetInfo:
     asset_name: str
     asset_type: str
     asset_process: str
-    asset_version: str
-    lock_owner: str = ""
 
 
 class Publish(ABC):

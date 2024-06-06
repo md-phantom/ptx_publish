@@ -6,7 +6,7 @@ from pathlib import Path
 import logging
 
 
-def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=True, uv_write=True, write_color_sets=True, write_face_sets=True,
+def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=False, uv_write=True, write_color_sets=True, write_face_sets=True,
                          whole_frame_geo=True, world_space=True, write_visibility=True, strip_namespaces=True, euler_filter=True, auto_subd=True,
                          write_uv_sets=True, data_format="ogawa"):
     """
