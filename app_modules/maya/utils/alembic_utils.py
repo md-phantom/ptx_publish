@@ -6,7 +6,7 @@ from pathlib import Path
 import logging
 
 
-def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=False, uv_write=True, write_color_sets=True, write_face_sets=True,
+def generate_abc_command(node_list, out_file, start, end, attr_list=[], no_normals=False, uv_write=True, write_color_sets=True, write_face_sets=True,
                          whole_frame_geo=True, world_space=True, write_visibility=True, strip_namespaces=True, euler_filter=True, auto_subd=True,
                          write_uv_sets=True, data_format="ogawa"):
     """
@@ -17,7 +17,7 @@ def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=Fa
     * Generate the command template for running the alembic cache command in maya
     """    
     # Create the abc command with the frameRange
-    abc_cmd = f"-frameRange {start} {end} -root {node} -dataFormat {data_format}"
+    abc_cmd = f"-frameRange {start} {end} -dataFormat {data_format}"
 
     # Add any extra attributes, if required
     for attr in attr_list:
@@ -35,6 +35,10 @@ def generate_abc_command(node, out_file, start, end, attr_list=[], no_normals=Fa
     abc_cmd = abc_cmd + " -eulerFilter" if euler_filter else abc_cmd
     abc_cmd = abc_cmd + " -autoSubd" if auto_subd else abc_cmd
     abc_cmd = abc_cmd + " -writeUVSets" if write_uv_sets else abc_cmd
+
+    for node in node_list:
+        nd = pm.PyNode(node)
+        abc_cmd += f" -root {nd.longName()}"
 
     # Add in the file flag
     abc_cmd += f" -file \'{out_file}\'"
