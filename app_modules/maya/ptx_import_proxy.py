@@ -5,7 +5,7 @@ from .factories import maya_process_factory as mpf
 import logging
 
 
-class PtxMdlActivate(Activate):
+class PtxImportProxy(Activate):
     """
     * Handle making the model active in Maya
     """
@@ -27,7 +27,7 @@ class PtxMdlActivate(Activate):
         # If the cache node is still invalid, return with an error
         if cache_node == None:
             self.publish_state = 0
-            logging.error("Unable to find any GPU Cache node")
+            logging.error("Unable to find any Cache node")
             return
         
         logging.info(f"CacheNode: {cache_node}")
@@ -51,7 +51,7 @@ class PtxNodeBuilder:
     def __init__(self) -> None:
         self._instance = None
 
-    def __call__(self, *args, **kwds) -> PtxMdlActivate:
+    def __call__(self, *args, **kwds) -> PtxImportProxy:
         if not self._instance:
-            self._instance = PtxMdlActivate(*args, **kwds)
+            self._instance = PtxImportProxy(*args, **kwds)
         return self._instance
