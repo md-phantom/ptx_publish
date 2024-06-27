@@ -19,8 +19,8 @@ class MayaUsdExporter(MayaExportProcessBase):
         if self.root_node:
             # If a root node is specified, then select it and turn on
             # the selection flag
-            root = pm.PyNode(self.root_node)
-            pm.select(root)
+            #root = pm.PyNode(self.root_node)
+            pm.select(self.root_node)
             self.selection = True
             logging.info("Selecting root node for export.")
 

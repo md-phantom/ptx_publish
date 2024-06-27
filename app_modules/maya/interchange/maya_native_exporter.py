@@ -6,15 +6,17 @@ from pathlib import Path
 
 
 class MayaNativeExporter(MayaExportProcessBase):
+    __extension_map__ = {"mataAscii": "ma", "mayaBinary": "mb"}
+
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.__maya_file_type = kwargs.get('maya_file_type') if 'maya_file_type' in kwargs.keys() else 'ma'
+        self.__maya_file_type = kwargs.get('maya_file_type') if 'maya_file_type' in kwargs.keys() else 'mayaAscii'
         self.__force = kwargs.get('force') if 'force' in kwargs.keys() else True
         self.__preserve_refs = kwargs.get('preserver_references') if 'preserver_references' in kwargs.keys() else False
         self.__selection_only = kwargs.get('selection_only') if 'selection_only' in kwargs.keys() else False
 
     def process(self):
-        if not self.root_node:
+        if self.__selection_only and not self.root_node:
             self.process_state = 0
             logging.error("Root node not specified. Please select a root node to cache.")
 
@@ -22,9 +24,11 @@ class MayaNativeExporter(MayaExportProcessBase):
             self.process_state = 1
             logging.warning("Export path wasn't specified. Using the current file's location as the export path.")
             f_path = Path(pm.sceneName())
-            self.export_path = f'{f_path.parent}/{f_path.stem}.{self.__maya_file_type}'
+            self.export_path = f'{f_path.parent}/{f_path.stem}.{self.__extension_map__[self.__maya_file_type]}'
 
         if self.__selection_only:
+            pm.select(clear=True)
+            pm.select(self.root_node)
             pm.exportSelected(self.export_path, force=self.__force, preserveReferences=self.__preserve_refs, type=self.__maya_file_type)
         else:
             pm.exportAll(self.export_path, force=self.__force, preserveReferences=self.__preserve_refs, type=self.__maya_file_type)

@@ -7,10 +7,10 @@ import logging
 
 
 def export_usd(file:str, append=False, chaser="", chaserArgs=[], convertMaterialsTo="UsdPreviewSurface", compatibility="", defaultCameras=False, 
-               defaultMeshScheme="catmullClark", defaultUSDFormat="usda", eulerFilter=False, exportBlendShapes=False, exportCollectionBasedBindings=False,
-               exportColorSets=True, exportDisplayColor=False, exportInstances=True, exportMaterialCollections=True, exportReferenceObjects=False, 
-               exportRefsAsInstanceable=False, exportRoots="", exportSkels="", exportSkin="", exportUVs=True, exportVisibility=True, filterTypes="",
-               frameRange=[1, 1], frameSample=0.0, frameStride=1.0, geomSidedness="derived", ignoreWarnings=False, kind="", materialCollectionsPath="",
+               defaultMeshScheme="catmullClark", defaultUSDFormat="usdc", eulerFilter=False, exportBlendShapes=False, exportCollectionBasedBindings=False,
+               exportColorSets=True, exportDisplayColor=False, exportInstances=True, exportMaterialCollections=True, exportRefsAsInstanceable=False, 
+               exportRoots="", exportSkels="", exportSkin="", exportUVs=True, exportVisibility=True, filterTypes="", frameRange=[1, 1], frameSample=0.0, 
+               frameStride=1.0, geomSidedness="derived", ignoreWarnings=False, kind="", materialCollectionsPath="",
                materialsScopeName="Looks", melPerFrameCallback="", melPostCallback="",  mergeTransformAndShape=True, normalizeNurbs=False, parentScope="",
                pythonPerFrameCallback="", pythonPostCallback="", renderLayerMode="defaultLayer", renderableOnly=True,
                selection=False, shadingMode="useRegistry", staticSingleSample=False, stripNamespaces=False, verbose=False):
