@@ -1,4 +1,4 @@
-from pxr import Usd, Sdf, UsdGeom, Kind
+from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade
 from pathlib import Path
 
 from chitragupta.ptx_data_structs import ptx_usd_structs as ptusds
@@ -102,6 +102,77 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None) -> Usd.Prim:
     return geom_scope
 
 
+def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX") -> UsdShade.Material:
+    """
+    * Create a mtlx shader and override the parameters that need to be overridden.
+    """
+    # define the looks scope
+    looks_path = Sdf.Path(parent_prim.GetPath().AppendChild("Looks") if parent_prim else "/Looks")
+    looks_scope = stage.DefinePrim(looks_path, "Scope")
+
+    # create the material definition from the template mtlx available to us
+    mat_path = looks_path.AppendChild(f"{mtl_name}")
+    mat_def = UsdShade.Material.Define(stage, mat_path)
+
+    # hardcoding the material class for now; 
+    # TODO: figure out where these definitions are, and how to add to these
+    inherits = stage.GetPrimAtPath(mat_path).GetInherits()
+    inherits.AddInherit(Sdf.Path("/__class_mtl__/mtlxmaterial"))
+
+    # Create the MtlX surface shader definitions
+    shd_std_srf = UsdShade.Shader.Define(stage, mat_path.AppendChild("StandardSurface"))
+    shd_std_srf.CreateIdAttr("ND_standard_surface_surfaceshader")
+
+    # Create the MtlX displacement shader definitions
+    shd_displ = UsdShade.Shader.Define(stage, mat_path.AppendChild("Displacement"))
+    shd_displ.CreateIdAttr("ND_displacement_float")
+
+    # Hook up the outputs of these shaders to the outputs on the main material
+    mat_def.CreateSurfaceOutput("mtlx").ConnectToSource(shd_std_srf.ConnectableAPI(), "surface")
+    mat_def.CreateDisplacementOutput("mtlx").ConnectToSource(shd_displ.ConnectableAPI(), "out")
+
+    return mat_def
+
+
+def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: str, param_name: str, uv_tile: ptusds.Float2 = ptusds.Float2(1.0, 1.0), mtl_name: str = "MtlX"):
+    """
+    * Create a UsdUVTexture node
+    """
+    # define the Textures scope
+    tex_scope_path = Sdf.Path(parent_prim.GetPath().AppendChild(f"{mtl_name}Textures"))
+    tex_scope = stage.DefinePrim(tex_scope_path, "Scope")
+
+    # Define the UsdUV Texture
+    tex_path = tex_scope_path.AppendChild(f"{param_name}_UsdUVTex")
+    tex_node = UsdShade.Shader.Define(stage, tex_path)
+    tex_node.CreateIdAttr("UsdUVTexture")
+    tex_node.CreateInput("color_space", Sdf.ValueTypeNames.String).Set("raw" if "normal" in param_name else "sRGB")
+    tex_node.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(texture_path))
+    tex_node.CreateInput("wrapS", Sdf.ValueTypeNames.Token).Set("repeat")
+    tex_node.CreateInput("wrapT", Sdf.ValueTypeNames.Token).Set("repeat")
+    tex_node.CreateOutput("a", Sdf.ValueTypeNames.Float)
+    if "normal" in param_name:
+        tex_node.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(2.0, 2.0, 2.0, 1.0))
+        tex_node.CreateInput("bias", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(-1.0, -1.0, -1.0, 0.0))
+        tex_node.CreateOutput("rgb", Sdf.ValueTypeNames.Normal3f)
+    else:
+        tex_node.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(1.0, 1.0, 1.0, 1.0))
+        tex_node.CreateOutput("r", Sdf.ValueTypeNames.Float)
+        tex_node.CreateOutput("g", Sdf.ValueTypeNames.Float)
+        tex_node.CreateOutput("b", Sdf.ValueTypeNames.Float)
+        tex_node.CreateOutput("rgb", Sdf.ValueTypeNames.Color3f)
+
+    # Define the UV Tile Node
+    uv_node_path = tex_scope_path.AppendChild(f"{param_name}_UsdUVNode")
+    uv_node = UsdShade.Shader.Define(stage, uv_node_path)
+    uv_node.CreateIdAttr("UsdPrimvarReader_float2")
+    uv_node.CreateInput("fallback", Sdf.ValueTypeNames.Float2).Set(Gf.Vec2f(uv_tile.X, uv_tile.Y))
+    uv_node.CreateInput("st", Sdf.ValueTypeNames.Token).Set("st")    
+    uv_node.CreateOutput("result", Sdf.ValueTypeNames.Float2)
+
+    tex_node.CreateInput("st", Sdf.ValueTypeNames.Token).ConnectToSource(uv_node.ConnectableAPI(), "result")
+
+
 def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str, 
                     payload_usd_path: str, asset_usd_path: str,
                     asset_name: str, asset_base_prim_path: str):
@@ -137,6 +208,11 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
                 mesh_payload_path = f'/{asset_name}/{payload_path}'
                 usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
 
+    usd_create_mtlx(usd_asset_stage)
+    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh", "base_color")
+    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_N", "normal")
+    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_CN", "coat_normal")
+
     usd_asset_stage.Save()
 
 
@@ -152,7 +228,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
     compose_pfx_usd(args.asset_info_path, args.asset_alembic_path, args.payload_usd_path, args.asset_usd_path, args.asset_name, args.asset_base_prim_path)
-    
+
     #compose_pfx_usd("C:/Users/Mukund Dhananjay/Downloads/.LUK_Character_Alien.ma",
     #                "D:/USD/Alien/asset/GEO_Character_Alien.abc",
     #                "D:/USD/Alien/asset/usd/AlienPayload_New.usda",
