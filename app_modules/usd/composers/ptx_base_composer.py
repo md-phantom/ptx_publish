@@ -125,7 +125,7 @@ def usd_mesh_payload(stage: Usd.Stage, prim_path: str, extern_payload_path: str,
     return mesh_payload
 
 
-def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None) -> Usd.Prim:
+def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None, scope_name: str = "Scope") -> Usd.Prim:
     """
     * Define a scope in the stage. If we have a valid parent prim, define the scope
     * under the prim, else define it at the root.
@@ -136,7 +136,7 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None) -> Usd.Prim:
     * @return: type Usd.Prim
     * 
     """
-    geom_scope: Usd.Prim = stage.DefinePrim(parent_prim.Getpath() if parent_prim else "/", "Scope")
+    geom_scope: Usd.Prim = stage.DefinePrim(f"{parent_prim.GetPath().pathString}/{scope_name}" if parent_prim else f"/{scope_name}", "Scope")
     return geom_scope
 
 
@@ -151,9 +151,8 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     * @return: type UsdShade.Material
     * 
     """
-    # define the looks scope
-    looks_path = Sdf.Path(parent_prim.GetPath().AppendChild("Looks") if parent_prim else "/Looks")
-    looks_scope = stage.DefinePrim(looks_path, "Scope")
+    # Get the looks parent prim path
+    looks_path = Sdf.Path(parent_prim.GetPath())
 
     # create the material definition from the template mtlx available to us
     mat_path = looks_path.AppendChild(f"{mtl_name}")
@@ -261,13 +260,17 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
                     payload_usd_path: str, asset_usd_path: str,
                     asset_name: str, asset_base_prim_path: str):
     """
-    * Main function reading in the looks info to build the usd file.
+    * Main function for reading in the looks info to build the USD payload, asset and look files.
+    * This can be used as is, or can be used as a reference on how to use the methods in this module
+    * to build out a USD file from scratch.
+    *
     * @param asset_info_path        : type str : Path to the asset json we'll be reading in
     * @param asset_alembic_path     : type str : Path to the asset alembic path
     * @param payload_usd_path       : type str : Path to the payload USD path
     * @param asset_usd_path         : type str : Path to the asset USD path
     * @param asset_name             : type str  : Name of the asset
     * @param asset_base_prim_path   : type str  : The base prim path of the asset, generally "/render_GRP"
+    *
     """
     # Create the main payload file if it doesn't exist.
     usd_payload_stage: Usd.Stage = usd_stage(payload_usd_path)
@@ -284,18 +287,41 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     root_asset_info(usd_asset_root_prim, asset_alembic_path, asset_name)
     usd_asset_stage.Save()
 
+    # Create the Looks USD stage. TODO: Avoid path translation here.
+    luk_path_parent = Path(asset_info_path).parent
+    luk_stage_name = Path(asset_info_path).stem[1:]
+    luk_usd_path = luk_path_parent / f"{luk_stage_name}.usda"
+    usd_look_stage: Usd.Stage = usd_stage(str(luk_usd_path))
+
+    # Add the Looks scope
+    usd_look_root_prim: Usd.Prim = usd_scope(usd_look_stage, None, "Looks")
+
     mat_list = ptusds.parse_looks_info(asset_info_path)
+    mat_dict = {}
     for mat_info in mat_list:
+        mat: UsdShade.Material = usd_create_mtlx(usd_look_stage, usd_look_root_prim, mat_info["name"])
+        mat_dict[mat] = {"name": mat_info["name"], "mesh_list":[]}    
         if mat_info.get('meshes'):
             for mesh in mat_info.get('meshes'):
                 payload_path = '/'.join(mesh.split('|')[2:-1])
                 mesh_payload_path = f'/{asset_name}/{payload_path}'
-                usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
+                mesh_payload = usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
+                mat_dict[mat]["mesh_list"].append(mesh_payload)
+    
+    # Save the Looks Stage File
+    usd_look_stage.Save()
 
-    usd_create_mtlx(usd_asset_stage)
-    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh", "base_color")
-    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_N", "normal")
-    usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_CN", "coat_normal")
+    # Reference the newly created looks usda into the asset usda
+    usd_asset_looks_scope = usd_scope(usd_asset_stage, None, "Looks")
+    looks_ref: Sdf.Reference = usd_reference(usd_asset_looks_scope, str(luk_usd_path), "/Looks")
+
+    # Apply the materials in the Look file
+    for each_mat in mat_dict:
+        usd_apply_material(usd_asset_root_prim, mat_dict[each_mat]["name"], each_mat, mat_dict[each_mat]["mesh_list"])
+
+    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh", "base_color")
+    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_N", "normal")
+    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_CN", "coat_normal")
 
     usd_asset_stage.Save()
 
