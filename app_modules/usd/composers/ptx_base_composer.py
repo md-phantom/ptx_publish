@@ -1,5 +1,6 @@
 from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade
 from pathlib import Path
+from typing import List
 
 from chitragupta.ptx_data_structs import ptx_usd_structs as ptusds
 
@@ -9,6 +10,11 @@ def usd_stage(pfx_stage_path: Path, stage_up_axis: UsdGeom.Tokens = UsdGeom.Toke
     * Take a path, and see if a USD stage exists here.
     * If it exists, just open the stage and return it. If it doesn't, create a new usd stage
     * at that location.
+    * @param pfx_stage_path:    type str:               The path of the USD stage on disk
+    * @param stage_up_axis:     type UsdGeom.Tokens:    The Up-Axis to use for this stage. By default, it's Y-Axis 
+    * 
+    * @return: type Usd.Stage
+    * 
     """
     usd_stage = None
     # Create the payload stage and save it
@@ -25,6 +31,13 @@ def usd_root_prim(stage: Usd.Stage, root_prim_name: str, create_xform: bool = Tr
     """
     * See if the stage has a root prim, and if it exists, return it.
     * If it doesn't, then create one, set it as the root and default prim, and return it.
+    *
+    * @param stage:             type Usd.Stage: The USD stage to add the root prim to
+    * @param root_prim_name:    type str:       The name of the Root Prim
+    * @param create_xform:      type bool:      Whether the Root Prim is an Xform or not. TODO: Support other types of prim
+    * 
+    * @return: type Usd.Prim
+    * 
     """
     if stage.GetPrimAtPath(f'/{root_prim_name}'):
         return stage.GetPrimAtPath(f'/{root_prim_name}')
@@ -41,7 +54,12 @@ def usd_root_prim(stage: Usd.Stage, root_prim_name: str, create_xform: bool = Tr
 
 def root_asset_info(root_prim: Usd.Prim, asset_path: str, asset_name: str):
     """
-    * Adds in the root asset info
+    * Adds in the asset info on the given prim
+    * 
+    * @param root_prim:     type Usd.Prim:  The USD prim to add the asset info to 
+    * @param asset_path:    type str:       The asset path we're adding in
+    * @param asset_name:    type str:       The asset name  
+    *
     """
     model_api = Usd.ModelAPI(root_prim)
     info = {
@@ -56,6 +74,13 @@ def usd_reference(prim: Usd.Prim, asset_path: str, asset_prim_path: str) -> Sdf.
     """
     * Search the prim for any reference with the asset_path and prim_path
     * If it exists, return the reference, else, create it and return it.
+    * 
+    * @param prim:              type Usd.Prim:  The USD prim to add the reference to
+    * @param asset_path:        type str:       The asset path to refer in
+    * @param asset_prim_path:   type str:       The path of the prim in the asset we want to refer in
+    *
+    * @return: type Sdf.Reference
+    *
     """
     usd_ref = None
     if prim.HasAuthoredReferences():
@@ -74,17 +99,24 @@ def usd_reference(prim: Usd.Prim, asset_path: str, asset_prim_path: str) -> Sdf.
     return usd_ref
 
 
-def usd_mesh_payload(stage: Usd.Stage, prim_path: str, extern_payload_path: Path, payload_prim_path: str) -> UsdGeom.Mesh:
+def usd_mesh_payload(stage: Usd.Stage, prim_path: str, extern_payload_path: str, payload_prim_path: str) -> UsdGeom.Mesh:
     """
-    * Get the USD mesh prim with a payload, if it exists.
-    * If it doesn't exist, create one.
+    * Get the USD mesh prim with a payload, if it exists. If it doesn't exist, create one.
+    *
+    * @param stage:                     type Usd.Stage: The USD stage to add the scope to
+    * @param prim_path:                 type str:       The stage relative path of the primitive
+    * @param extern_payload_path:       type str:       The path to the payload on storage
+    * @param extern_payload_path:       type str:       The path of the payload in the alembic file
+    * 
+    * @return: type UsdGeom.Mesh
+    * 
     """
     if stage.GetPrimAtPath(f'{prim_path}'):
         return stage.GetPrimAtPath(f'{prim_path}')
     
     mesh_payload: UsdGeom.Mesh = UsdGeom.Mesh.Define(stage, prim_path).GetPrim()
     mesh_payload.GetPayloads().AddPayload(
-        assetPath = str(extern_payload_path),
+        assetPath = extern_payload_path,
         primPath = payload_prim_path
     )
     # add the material binding API
@@ -97,6 +129,12 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None) -> Usd.Prim:
     """
     * Define a scope in the stage. If we have a valid parent prim, define the scope
     * under the prim, else define it at the root.
+    *
+    * @param stage:         type Usd.Stage: The USD stage to add the scope to
+    * @param parent_prim:   type Usd.Prim:  The Parent Prim to add this scope under
+    * 
+    * @return: type Usd.Prim
+    * 
     """
     geom_scope: Usd.Prim = stage.DefinePrim(parent_prim.Getpath() if parent_prim else "/", "Scope")
     return geom_scope
@@ -105,6 +143,13 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None) -> Usd.Prim:
 def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX") -> UsdShade.Material:
     """
     * Create a mtlx shader and override the parameters that need to be overridden.
+    *
+    * @param stage:         type Usd.Stage: The USD stage to add the mtlx to
+    * @param parent_prim:   type Usd.Prim:  The Parent Prim to add this mtlx under
+    * @param mtl_name:      type str:       The name of the material
+    * 
+    * @return: type UsdShade.Material
+    * 
     """
     # define the looks scope
     looks_path = Sdf.Path(parent_prim.GetPath().AppendChild("Looks") if parent_prim else "/Looks")
@@ -134,9 +179,21 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     return mat_def
 
 
-def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: str, param_name: str, uv_tile: ptusds.Float2 = ptusds.Float2(1.0, 1.0), mtl_name: str = "MtlX"):
+def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: str, param_name: str, uv_tile: ptusds.Float2 = ptusds.Float2(1.0, 1.0), mtl_name: str = "MtlX") -> tuple[UsdShade.Shader, UsdShade.Shader]:
     """
-    * Create a UsdUVTexture node
+    * Create a UsdUVTexture node, along with its associated uv coordinate node.
+    * We also handle creation for normal & tangent maps
+    *
+    * @param stage:         type Usd.Stage: The USD stage to create the texture under
+    * @param parent_prim:   type Usd.Prim:  The Parent Prim to add the texture under
+    * @param texture_path:  type str:       The path to the texture file
+    * @param param_name:    type str:       The name of the shader parameter we're adding to the material
+    * @param uv_tile:       type Float2:    The uv tiling value
+    * @param mtl_name:      type str:       The Material Name to which the texture belongs
+    * @param mtl_name:      type str:       The name of the material
+    *
+    * @return: type tuple(UsdShade.Shader, UsdShade.Shader)
+    *
     """
     # define the Textures scope
     tex_scope_path = Sdf.Path(parent_prim.GetPath().AppendChild(f"{mtl_name}Textures"))
@@ -145,17 +202,22 @@ def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: st
     # Define the UsdUV Texture
     tex_path = tex_scope_path.AppendChild(f"{param_name}_UsdUVTex")
     tex_node = UsdShade.Shader.Define(stage, tex_path)
+
+    # Create inputs for file, wrapS, wrapT and an output for alpha
     tex_node.CreateIdAttr("UsdUVTexture")
-    tex_node.CreateInput("color_space", Sdf.ValueTypeNames.String).Set("raw" if "normal" in param_name else "sRGB")
     tex_node.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(texture_path))
     tex_node.CreateInput("wrapS", Sdf.ValueTypeNames.Token).Set("repeat")
     tex_node.CreateInput("wrapT", Sdf.ValueTypeNames.Token).Set("repeat")
     tex_node.CreateOutput("a", Sdf.ValueTypeNames.Float)
-    if "normal" in param_name:
+
+    # Create specific inputs for normal or tangent maps
+    if "normal" in param_name or "tangent" in param_name:
+        tex_node.CreateInput("color_space", Sdf.ValueTypeNames.String).Set("raw")
         tex_node.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(2.0, 2.0, 2.0, 1.0))
         tex_node.CreateInput("bias", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(-1.0, -1.0, -1.0, 0.0))
         tex_node.CreateOutput("rgb", Sdf.ValueTypeNames.Normal3f)
     else:
+        tex_node.CreateInput("color_space", Sdf.ValueTypeNames.String).Set("sRGB")
         tex_node.CreateInput("scale", Sdf.ValueTypeNames.Float4).Set(Gf.Vec4f(1.0, 1.0, 1.0, 1.0))
         tex_node.CreateOutput("r", Sdf.ValueTypeNames.Float)
         tex_node.CreateOutput("g", Sdf.ValueTypeNames.Float)
@@ -167,10 +229,32 @@ def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: st
     uv_node = UsdShade.Shader.Define(stage, uv_node_path)
     uv_node.CreateIdAttr("UsdPrimvarReader_float2")
     uv_node.CreateInput("fallback", Sdf.ValueTypeNames.Float2).Set(Gf.Vec2f(uv_tile.X, uv_tile.Y))
-    uv_node.CreateInput("st", Sdf.ValueTypeNames.Token).Set("st")    
+    uv_node.CreateInput("varname", Sdf.ValueTypeNames.Token).Set("st")    
     uv_node.CreateOutput("result", Sdf.ValueTypeNames.Float2)
 
     tex_node.CreateInput("st", Sdf.ValueTypeNames.Token).ConnectToSource(uv_node.ConnectableAPI(), "result")
+
+    return (tex_node, uv_node)
+
+
+def usd_apply_material(prim: Usd.Prim, mtl_name: str, mtl: UsdShade.Material, mesh_list: List[UsdGeom.Mesh]):
+    """
+    * Bind the given material to the list of meshes provided
+    *
+    * @param prim:      type Usd.Prim:              The USD Prim which is the parent of the list of meshes
+    * @param mtl_name:  type str:                   Name of the Material we want to create the binding for
+    * @param mtl        type UsdShade.Material:     The Material Primitive to to create the binding for
+    * @param mesh_list: type List[UsdGeom.Mesh]:    The list of USD Meshes to bind the material to
+    *
+    """
+    mat_bind_api = UsdShade.MaterialBindingAPI.Apply(prim)
+    collection_name = f"mat_bind_{mtl_name}"
+    collection_api = Usd.CollectionAPI.Apply(prim, collection_name)
+    for each_mesh in mesh_list:
+        collection_api.GetIncludesRel().AddTarget(each_mesh.GetPath())
+    
+    collection_api.GetExpansionRuleAttr().Set(Usd.Tokens.expandPrims)
+    mat_bind_api.Bind(collection_api, mtl, collection_name) 
 
 
 def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str, 
