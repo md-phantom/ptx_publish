@@ -201,18 +201,28 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     find_field = lambda usd_node, field_name: next((f for f in fields(usd_node) if f.name == field_name), None)
     
     for param in mtl_param_list:
-        fld = find_field(mtlx_node, param["name"])
-        param_type = getattr(mtlx_node, fld.name).type
-        if param_type == ptusds.UsdAttributeType.bool:
-            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Bool).Set(True if param["value"] == "true" else False)
-        elif param_type == ptusds.UsdAttributeType.float:
-            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Float).Set(eval(param["value"]))
-        elif param_type == ptusds.UsdAttributeType.vector3:
-            val_arr = eval(param["value"])
-            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Normal3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
-        else:
-            val_arr = eval(param["value"])
-            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
+        if param["name"] in __MATERIALX_PARAM_WHITELIST__.keys():
+            fld = find_field(mtlx_node, __MATERIALX_PARAM_WHITELIST__[param["name"]])
+            texture_info = param.get("texture")
+            param_type = getattr(mtlx_node, fld.name).type
+            if param_type == ptusds.UsdAttributeType.bool:
+                shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Bool).Set(True if param["value"] == "true" else False)
+            elif param_type == ptusds.UsdAttributeType.float:
+                shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Float).Set(param["value"])
+            elif param_type == ptusds.UsdAttributeType.vector3:
+                val_arr = param["value"]
+                if "texture" in param.keys():
+                    tex_node, coord_node = usd_create_texture(stage, stage.GetPrimAtPath(mat_path), param["texture"]["path"], __MATERIALX_PARAM_WHITELIST__[param["name"]], ptusds.Float2(1.0, 1.0), mtl_name)
+                    shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Normal3f).ConnectToSource(tex_node.ConnectableAPI(), "rgb")
+                else:
+                    shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Normal3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
+            else:
+                val_arr = param["value"]
+                if "texture" in param.keys():
+                    tex_node, coord_node = usd_create_texture(stage, stage.GetPrimAtPath(mat_path), param["texture"]["path"], __MATERIALX_PARAM_WHITELIST__[param["name"]], ptusds.Float2(1.0, 1.0), mtl_name)
+                    shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Color3f).ConnectToSource(tex_node.ConnectableAPI(), "rgb")
+                else:
+                    shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
 
     # Create the MtlX displacement shader definitions
     shd_displ = UsdShade.Shader.Define(stage, mat_path.AppendChild("Displacement"))
@@ -367,7 +377,6 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     for each_mat in mat_dict:
         usd_apply_material(usd_asset_root_prim, mat_dict[each_mat]["name"], each_mat, mat_dict[each_mat]["mesh_list"])
 
-    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh", "base_color")
     #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_N", "normal")
     #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_CN", "coat_normal")
 
