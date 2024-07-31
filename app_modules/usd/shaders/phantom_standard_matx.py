@@ -65,6 +65,10 @@ class PhantomUsdMaterialX(pusds.PhantomUsdMaterialBase):
         """
         * Initialize the attribute names if they are empty
         """
+        # Set the material type
+        self.material_type = pusds.UsdMaterialType.StandardSurface
+
+        # set any default values which may not have been passed in
         if self.base.name == '': self.base.name = 'base'
         if self.base_color.name == '': self.base_color.name = 'base_color'
         if self.diffuse_roughness.name == '': self.diffuse_roughness.name = 'diffuse_roughness'
@@ -109,7 +113,7 @@ class PhantomUsdMaterialX(pusds.PhantomUsdMaterialBase):
         if self.thin_walled.name == '': self.thin_walled.name = 'thin_walled'
 
 
-class PhantomUsdMaterialBuilder:
+class PhantomUsdNodeBuilder:
     """
     * Factory for Creating an instance of the PhantomUsdMaterialX Class.
     """
@@ -123,5 +127,8 @@ class PhantomUsdMaterialBuilder:
 
 
 if __name__ == "__main__":
-    matx = PhantomUsdMaterialX(name="Test", material_type=pusds.UsdMaterialType.StandardSurface, meshes=["mesh1", "mesh2"])
-    print(matx)
+    from dataclasses import fields
+    matx = PhantomUsdMaterialX(name="Test", meshes=["mesh1", "mesh2"])
+    subsurface_field = lambda obj, field_name: next((f for f in fields(obj) if f.name == field_name), None)
+    result = subsurface_field(matx, "subsurface")
+    print(result.name, getattr(matx, result.name).type)

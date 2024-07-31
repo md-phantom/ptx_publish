@@ -1,8 +1,32 @@
+from dataclasses import dataclass, fields
 from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade
 from pathlib import Path
 from typing import List
 
 from chitragupta.ptx_data_structs import ptx_usd_structs as ptusds
+from ptx_publish.app_modules.usd.factories import phantom_usd_factory as puf
+
+__MATERIALX_PARAM_WHITELIST__ = {"base": "base", "baseColor": "base_color", "diffuseRoughness": "diffuse_roughness", "normalColor": "normal", "tangent": "tangent",  
+                                 "metalness": "metalness", "specular": "specular", "specularColor": "specular_color", "specularRoughness": "specular_roughness",
+                                 "specularIOR": "specular_IOR", "specularAnisotropy": "specular_anisotropy", "specularRotation": "specular_rotation",
+                                 "transmission": "transmission", "transmissionColor": "transmission_color", "transmissionDepth": "transmission_depth",
+                                 "transmissionScatter": "transmission_scatter", "transmissionScatterAnisotropy": "transmission_scatter_anisotropy", 
+                                 "transmissionDispersion": "transmission_dispersion", "transmissionExtraRoughness": "transmission_extra_roughness",
+                                 "subsurface": "subsurface", "subsurfaceColor": "subsurface_color", "subsurfaceRadius": "subsurface_radius", "subsurfaceScale": "subsurface_scale",
+                                 "subsurfaceAnisotropy": "subsurface_anisotropy", "sheen": "sheen", "sheenColor": "sheen_color", "sheenRoughness": "sheen_roughness",
+                                 "coat": "coat", "coatColor": "coat_color", "coatRoughness": "coat_roughness", "coatIOR": "coat_IOR", "coatNormal": "coat_normal", 
+                                 "coatAnisotropy": "coat_anisotropy", "coatRotation": "coat_rotation", "coatAffectColor": "coat_affect_color", 
+                                 "coatAffectRoughness": "coat_affect_roughness", "thinFilmThickness": "thin_film_thickness", "thinFilmIOR": "thin_film_IOR", 
+                                 "emission": "emission", "emissionColor": "emission_color", "opacity": "opacity", "thinWalled": "thin_walled"}
+
+
+@dataclass
+class PhantomMatStruct:
+    material_type: str
+    shader_name: str
+    meshes: List
+    parameters: List
+    sg_node: str = ""
 
 
 def usd_stage(pfx_stage_path: Path, stage_up_axis: UsdGeom.Tokens = UsdGeom.Tokens.y) -> Usd.Stage:
@@ -140,17 +164,24 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None, scope_name: str = 
     return geom_scope
 
 
-def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX") -> UsdShade.Material:
+def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX", mtl_param_list: list = []) -> UsdShade.Material:
     """
     * Create a mtlx shader and override the parameters that need to be overridden.
     *
     * @param stage:         type Usd.Stage: The USD stage to add the mtlx to
     * @param parent_prim:   type Usd.Prim:  The Parent Prim to add this mtlx under
-    * @param mtl_name:      type str:       The name of the material
+    * @param mtl_dict:      type dict:      A dictionary containing
     * 
     * @return: type UsdShade.Material
     * 
     """
+    # Get an instance of our USDMaterialX Node
+    p_fac = puf.PhantomUsdFactory()
+    mtl_spec = p_fac.register_usd_type("shaders", "aiStandardSurface")
+
+    # Create a materialX node, but as of now we don't need to feed in the mesh list.
+    mtlx_node = p_fac.create(mtl_spec, mtl_name, [])
+
     # Get the looks parent prim path
     looks_path = Sdf.Path(parent_prim.GetPath())
 
@@ -166,6 +197,22 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     # Create the MtlX surface shader definitions
     shd_std_srf = UsdShade.Shader.Define(stage, mat_path.AppendChild("StandardSurface"))
     shd_std_srf.CreateIdAttr("ND_standard_surface_surfaceshader")
+
+    find_field = lambda usd_node, field_name: next((f for f in fields(usd_node) if f.name == field_name), None)
+    
+    for param in mtl_param_list:
+        fld = find_field(mtlx_node, param["name"])
+        param_type = getattr(mtlx_node, fld.name).type
+        if param_type == ptusds.UsdAttributeType.bool:
+            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Bool).Set(True if param["value"] == "true" else False)
+        elif param_type == ptusds.UsdAttributeType.float:
+            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Float).Set(eval(param["value"]))
+        elif param_type == ptusds.UsdAttributeType.vector3:
+            val_arr = eval(param["value"])
+            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Normal3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
+        else:
+            val_arr = eval(param["value"])
+            shd_std_srf.CreateInput(fld.name, Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(val_arr[0], val_arr[1], val_arr[2]))
 
     # Create the MtlX displacement shader definitions
     shd_displ = UsdShade.Shader.Define(stage, mat_path.AppendChild("Displacement"))
@@ -238,7 +285,8 @@ def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: st
 
 def usd_apply_material(prim: Usd.Prim, mtl_name: str, mtl: UsdShade.Material, mesh_list: List[UsdGeom.Mesh]):
     """
-    * Bind the given material to the list of meshes provided
+    * Bind the given material to the list of meshes provided. We will use the collection method to bind the
+    * materials to the meshes
     *
     * @param prim:      type Usd.Prim:              The USD Prim which is the parent of the list of meshes
     * @param mtl_name:  type str:                   Name of the Material we want to create the binding for
@@ -299,14 +347,14 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     mat_list = ptusds.parse_looks_info(asset_info_path)
     mat_dict = {}
     for mat_info in mat_list:
-        mat: UsdShade.Material = usd_create_mtlx(usd_look_stage, usd_look_root_prim, mat_info["name"])
-        mat_dict[mat] = {"name": mat_info["name"], "mesh_list":[]}    
-        if mat_info.get('meshes'):
-            for mesh in mat_info.get('meshes'):
-                payload_path = '/'.join(mesh.split('|')[2:-1])
-                mesh_payload_path = f'/{asset_name}/{payload_path}'
-                mesh_payload = usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
-                mat_dict[mat]["mesh_list"].append(mesh_payload)
+        mat_struct = PhantomMatStruct(**mat_info)
+        mat: UsdShade.Material = usd_create_mtlx(usd_look_stage, usd_look_root_prim, mat_struct.shader_name, mat_struct.parameters)
+        mat_dict[mat] = {"name": mat_struct.shader_name, "mesh_list":[]}    
+        for mesh in mat_struct.meshes:
+            payload_path = '/'.join(mesh.split('|')[2:-1])
+            mesh_payload_path = f'/{asset_name}/{payload_path}'
+            mesh_payload = usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
+            mat_dict[mat]["mesh_list"].append(mesh_payload)
     
     # Save the Looks Stage File
     usd_look_stage.Save()
@@ -339,6 +387,10 @@ if __name__ == "__main__":
     args = parser.parse_args()
     compose_pfx_usd(args.asset_info_path, args.asset_alembic_path, args.payload_usd_path, args.asset_usd_path, args.asset_name, args.asset_base_prim_path)
 
+    #mat_list = ptusds.parse_looks_info("C:/Users/Mukund Dhananjay/Downloads/.LUK_Character_Alien.ma")
+    #for mat in mat_list:
+    #    mtl_struct = PhantomMatStruct(**mat)
+    #    print(mtl_struct)
     #compose_pfx_usd("C:/Users/Mukund Dhananjay/Downloads/.LUK_Character_Alien.ma",
     #                "D:/USD/Alien/asset/GEO_Character_Alien.abc",
     #                "D:/USD/Alien/asset/usd/AlienPayload_New.usda",
