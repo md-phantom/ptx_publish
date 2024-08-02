@@ -2,6 +2,7 @@ from dataclasses import dataclass, fields
 from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade
 from pathlib import Path
 from typing import List
+import os
 
 from chitragupta.ptx_data_structs import ptx_usd_structs as ptusds
 from ptx_publish.app_modules.usd.factories import phantom_usd_factory as puf
@@ -29,7 +30,20 @@ class PhantomMatStruct:
     sg_node: str = ""
 
 
-def usd_stage(pfx_stage_path: Path, stage_up_axis: UsdGeom.Tokens = UsdGeom.Tokens.y) -> Usd.Stage:
+def convert_to_relative_path(abs_path: str, base_path: str) -> str:
+    """
+    * Convert an absolute path to a relative path
+    * 
+    * @param abs_path:    type str:    The absolute path to convert
+    * @param base_path:   type str:    The base path to convert from
+    * 
+    * @return: type str
+    * 
+    """
+    return os.path.relpath(abs_path, base_path)
+
+
+def usd_stage(pfx_stage_path: str, stage_up_axis: UsdGeom.Tokens = UsdGeom.Tokens.y) -> Usd.Stage:
     """
     * Take a path, and see if a USD stage exists here.
     * If it exists, just open the stage and return it. If it doesn't, create a new usd stage
@@ -315,7 +329,7 @@ def usd_apply_material(prim: Usd.Prim, mtl_name: str, mtl: UsdShade.Material, me
 
 
 def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str, 
-                    payload_usd_path: str, asset_usd_path: str,
+                    usd_base_location: str, asset_type: str,
                     asset_name: str, asset_base_prim_path: str):
     """
     * Main function for reading in the looks info to build the USD payload, asset and look files.
@@ -324,13 +338,14 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     *
     * @param asset_info_path        : type str : Path to the asset json we'll be reading in
     * @param asset_alembic_path     : type str : Path to the asset alembic path
-    * @param payload_usd_path       : type str : Path to the payload USD path
-    * @param asset_usd_path         : type str : Path to the asset USD path
-    * @param asset_name             : type str  : Name of the asset
-    * @param asset_base_prim_path   : type str  : The base prim path of the asset, generally "/render_GRP"
+    * @param usd_base_location      : type str : Path to where the payload and asset USD files will be saved
+    * @param asset_type             : type str : The type of the asset
+    * @param asset_name             : type str : Name of the asset
+    * @param asset_base_prim_path   : type str : The base prim path of the asset, generally "/render_GRP"
     *
     """
     # Create the main payload file if it doesn't exist.
+    payload_usd_path = f"{usd_base_location}/Payload_{asset_type}_{asset_name}.usda"
     usd_payload_stage: Usd.Stage = usd_stage(payload_usd_path)
     ups_root_prim: Usd.Prim = usd_root_prim(usd_payload_stage, asset_name, False)
     root_asset_info(ups_root_prim, asset_alembic_path, asset_name)
@@ -338,6 +353,7 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     usd_payload_stage.Save()
 
     # Create the actual asset definition usd
+    asset_usd_path = f"{usd_base_location}/GEO_{asset_type}_{asset_name}.usda"
     usd_asset_stage: Usd.Stage = usd_stage(asset_usd_path)
     usd_asset_root_prim: UsdGeom.Xform = usd_root_prim(usd_asset_stage, asset_name)
     model_api = Usd.ModelAPI(usd_asset_root_prim)
@@ -345,11 +361,9 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
     root_asset_info(usd_asset_root_prim, asset_alembic_path, asset_name)
     usd_asset_stage.Save()
 
-    # Create the Looks USD stage. TODO: Avoid path translation here.
-    luk_path_parent = Path(asset_info_path).parent
-    luk_stage_name = Path(asset_info_path).stem[1:]
-    luk_usd_path = luk_path_parent / f"{luk_stage_name}.usda"
-    usd_look_stage: Usd.Stage = usd_stage(str(luk_usd_path))
+    # Create the Looks USD stage.
+    luk_usd_path = f"{usd_base_location}/LUK_{asset_type}_{asset_name}/LUK_{asset_type}_{asset_name}.usda"
+    usd_look_stage: Usd.Stage = usd_stage(luk_usd_path)
 
     # Add the Looks scope
     usd_look_root_prim: Usd.Prim = usd_scope(usd_look_stage, None, "Looks")
@@ -363,7 +377,7 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
         for mesh in mat_struct.meshes:
             payload_path = '/'.join(mesh.split('|')[2:-1])
             mesh_payload_path = f'/{asset_name}/{payload_path}'
-            mesh_payload = usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', payload_usd_path, mesh_payload_path)
+            mesh_payload = usd_mesh_payload(usd_asset_stage, f'/{asset_name}/{mesh.split("|")[-1]}', f"./Payload_{asset_type}_{asset_name}.usda", mesh_payload_path)
             mat_dict[mat]["mesh_list"].append(mesh_payload)
     
     # Save the Looks Stage File
@@ -371,14 +385,11 @@ def compose_pfx_usd(asset_info_path: str, asset_alembic_path: str,
 
     # Reference the newly created looks usda into the asset usda
     usd_asset_looks_scope = usd_scope(usd_asset_stage, None, "Looks")
-    looks_ref: Sdf.Reference = usd_reference(usd_asset_looks_scope, str(luk_usd_path), "/Looks")
+    looks_ref: Sdf.Reference = usd_reference(usd_asset_looks_scope, f"./LUK_{asset_type}_{asset_name}/LUK_{asset_type}_{asset_name}.usda", "/Looks")
 
     # Apply the materials in the Look file
     for each_mat in mat_dict:
         usd_apply_material(usd_asset_root_prim, mat_dict[each_mat]["name"], each_mat, mat_dict[each_mat]["mesh_list"])
-
-    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_N", "normal")
-    #usd_create_texture(usd_asset_stage, usd_asset_stage.GetPrimAtPath("/Looks"), "/blah/bleh/bluh_CN", "coat_normal")
 
     usd_asset_stage.Save()
 
@@ -388,13 +399,13 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Process the PFx Asset Info and generate a USDA file.')
     parser.add_argument('asset_info_path', metavar='-aip', type=str, help='The PFx Asset Info Path')
     parser.add_argument('asset_alembic_path', metavar='-abcp', type=str, help='The alembic mesh path')
-    parser.add_argument('payload_usd_path', metavar='-pusdp', type=str, help='The path to the payload usd file')
-    parser.add_argument('asset_usd_path', metavar='-ausdp', type=str, help='The path to the asset usd file')
+    parser.add_argument('usd_base_location', metavar='-usdbl', type=str, help='The path to the payload usd file')
+    parser.add_argument('asset_type', metavar='-at', type=str, help='The path to the asset usd file')
     parser.add_argument('asset_name', metavar='-an', type=str, help='The asset name')
     parser.add_argument('asset_base_prim_path', metavar='-abpp', type=str, help='The default prim path of the asset')
 
     args = parser.parse_args()
-    compose_pfx_usd(args.asset_info_path, args.asset_alembic_path, args.payload_usd_path, args.asset_usd_path, args.asset_name, args.asset_base_prim_path)
+    compose_pfx_usd(args.asset_info_path, args.asset_alembic_path, args.usd_base_location, args.asset_type, args.asset_name, args.asset_base_prim_path)
 
     #mat_list = ptusds.parse_looks_info("C:/Users/Mukund Dhananjay/Downloads/.LUK_Character_Alien.ma")
     #for mat in mat_list:
@@ -402,6 +413,6 @@ if __name__ == "__main__":
     #    print(mtl_struct)
     #compose_pfx_usd("C:/Users/Mukund Dhananjay/Downloads/.LUK_Character_Alien.ma",
     #                "D:/USD/Alien/asset/GEO_Character_Alien.abc",
-    #                "D:/USD/Alien/asset/usd/AlienPayload_New.usda",
-    #                "D:/USD/Alien/asset/usd/GEO_Char_Alien_Body_New.usda",
+    #                "D:/USD/Alien/asset",
+    #                "Character",
     #                "Alien", "/render_GRP")
