@@ -178,7 +178,8 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None, scope_name: str = 
     return geom_scope
 
 
-def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX", mtl_param_list: list = []) -> UsdShade.Material:
+def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: str = "MtlX", mtl_param_list: list = [],
+                    mtlx_type:str = "/__class_mtl__/mtlxmaterial", shader_type:str = "ND_standard_surface_surfaceshader") -> UsdShade.Material:
     """
     * Create a mtlx shader and override the parameters that need to be overridden.
     *
@@ -206,11 +207,11 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     # hardcoding the material class for now; 
     # TODO: figure out where these definitions are, and how to add to these
     inherits = stage.GetPrimAtPath(mat_path).GetInherits()
-    inherits.AddInherit(Sdf.Path("/__class_mtl__/mtlxmaterial"))
+    inherits.AddInherit(Sdf.Path(mtlx_type))
 
     # Create the MtlX surface shader definitions
     shd_std_srf = UsdShade.Shader.Define(stage, mat_path.AppendChild("StandardSurface"))
-    shd_std_srf.CreateIdAttr("ND_standard_surface_surfaceshader")
+    shd_std_srf.CreateIdAttr(shader_type)
 
     find_field = lambda usd_node, field_name: next((f for f in fields(usd_node) if f.name == field_name), None)
     
