@@ -210,7 +210,7 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     inherits.AddInherit(Sdf.Path(mtlx_type))
 
     # Create the MtlX surface shader definitions
-    shd_std_srf = UsdShade.Shader.Define(stage, mat_path.AppendChild("StandardSurface"))
+    shd_std_srf = UsdShade.Shader.Define(stage, mat_path.AppendChild(f"{mtl_name}_standard_surface"))
     shd_std_srf.CreateIdAttr(shader_type)
 
     find_field = lambda usd_node, field_name: next((f for f in fields(usd_node) if f.name == field_name), None)
@@ -275,7 +275,7 @@ def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: st
     tex_node = UsdShade.Shader.Define(stage, tex_path)
 
     # Create inputs for file, wrapS, wrapT and an output for alpha
-    tex_node.CreateIdAttr("UsdUVTexture")
+    tex_node.CreateIdAttr("ND_UsdUVTexture")
     tex_node.CreateInput("file", Sdf.ValueTypeNames.Asset).Set(Sdf.AssetPath(texture_path))
     tex_node.CreateInput("wrapS", Sdf.ValueTypeNames.Token).Set("repeat")
     tex_node.CreateInput("wrapT", Sdf.ValueTypeNames.Token).Set("repeat")
@@ -298,12 +298,11 @@ def usd_create_texture(stage: Usd.Stage, parent_prim: Usd.Prim, texture_path: st
     # Define the UV Tile Node
     uv_node_path = tex_scope_path.AppendChild(f"{param_name}_UsdUVNode")
     uv_node = UsdShade.Shader.Define(stage, uv_node_path)
-    uv_node.CreateIdAttr("UsdPrimvarReader_float2")
-    uv_node.CreateInput("fallback", Sdf.ValueTypeNames.Float2).Set(Gf.Vec2f(uv_tile.X, uv_tile.Y))
-    uv_node.CreateInput("varname", Sdf.ValueTypeNames.Token).Set("st")    
-    uv_node.CreateOutput("result", Sdf.ValueTypeNames.Float2)
+    uv_node.CreateIdAttr("ND_texcoord_vector2")
+    uv_node.CreateInput("index", Sdf.ValueTypeNames.Int).Set(0)    
+    uv_node.CreateOutput("out", Sdf.ValueTypeNames.Float2)
 
-    tex_node.CreateInput("st", Sdf.ValueTypeNames.Token).ConnectToSource(uv_node.ConnectableAPI(), "result")
+    tex_node.CreateInput("st", Sdf.ValueTypeNames.Token).ConnectToSource(uv_node.ConnectableAPI(), "out")
 
     return (tex_node, uv_node)
 

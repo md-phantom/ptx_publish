@@ -12,7 +12,7 @@ class PhantomUsdMaterialX(pusds.PhantomUsdMaterialBase):
     base_color: pusds.PhantomUsdColor3Attribute = field(default_factory=pusds.PhantomUsdColor3Attribute)
     diffuse_roughness: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
     normal: pusds.PhantomUsdVector3Attribute = field(default_factory=pusds.PhantomUsdVector3Attribute)
-    tangent: pusds.PhantomUsdVector3Attribute = field(default_factory=pusds.PhantomUsdVector3Attribute)
+    tangent: pusds.PhantomUsdColor3Attribute = field(default_factory=pusds.PhantomUsdColor3Attribute)
 
     metalness: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
     
@@ -47,7 +47,7 @@ class PhantomUsdMaterialX(pusds.PhantomUsdMaterialBase):
     coat_anisotropy: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
     coat_rotation: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
     coat_IOR: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
-    coat_normal: pusds.PhantomUsdVector3Attribute = field(default_factory=pusds.PhantomUsdVector3Attribute)
+    coat_normal: pusds.PhantomUsdColor3Attribute = field(default_factory=pusds.PhantomUsdColor3Attribute)
     coat_affect_color: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
     coat_affect_roughness: pusds.PhantomUsdFloatAttribute = field(default_factory=pusds.PhantomUsdFloatAttribute)
 
