@@ -144,7 +144,7 @@ def usd_mesh_payload(stage: Usd.Stage, prim_path: str, extern_payload_path: str,
     * @param stage:                     type Usd.Stage: The USD stage to add the scope to
     * @param prim_path:                 type str:       The stage relative path of the primitive
     * @param extern_payload_path:       type str:       The path to the payload on storage
-    * @param extern_payload_path:       type str:       The path of the payload in the alembic file
+    * @param payload_prim_path:         type str:       The path of the payload in the alembic file
     * 
     * @return: type UsdGeom.Mesh
     * 
@@ -170,6 +170,7 @@ def usd_scope(stage: Usd.Stage, parent_prim: Usd.Prim = None, scope_name: str = 
     *
     * @param stage:         type Usd.Stage: The USD stage to add the scope to
     * @param parent_prim:   type Usd.Prim:  The Parent Prim to add this scope under
+    * @param scope_name:    type Usd.Prim:  The name of the scope
     * 
     * @return: type Usd.Prim
     * 
@@ -185,7 +186,10 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     *
     * @param stage:         type Usd.Stage: The USD stage to add the mtlx to
     * @param parent_prim:   type Usd.Prim:  The Parent Prim to add this mtlx under
-    * @param mtl_dict:      type dict:      A dictionary containing
+    * @param mtl_name:      type str:       The name of the material
+    * @param mtl_param_list: type list:     The list of parameters to override
+    * @param mtlx_type:     type str:       The type of mtlx shader. 
+    * @param shader_type:   type str:       The type of shader to create.
     * 
     * @return: type UsdShade.Material
     * 
