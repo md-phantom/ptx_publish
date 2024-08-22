@@ -180,7 +180,7 @@ def usd_create_mtlx(stage: Usd.Stage, parent_prim: Usd.Prim = None, mtl_name: st
     :param stage:          type Usd.Stage: The USD stage to add the mtlx to
     :param parent_prim:    type Usd.Prim:  The Parent Prim to add this mtlx under
     :param mtl_name:       type str:       The name of the material
-    :param mtl_param_list: type list:     The list of parameters to override
+    :param mtl_param_list: type list:      The list of parameters to override
     :param mtlx_type:      type str:       The type of mtlx shader. 
     :param shader_type:    type str:       The type of shader to create.
      
