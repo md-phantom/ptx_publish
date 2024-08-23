@@ -1,5 +1,5 @@
 from dataclasses import dataclass, fields
-from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade
+from pxr import Usd, Sdf, UsdGeom, Kind, Gf, UsdShade, Tf
 from pathlib import Path
 from typing import List
 import os
@@ -152,8 +152,7 @@ def usd_mesh_payload(stage: Usd.Stage, prim_path: str, extern_payload_path: str,
         primPath = payload_prim_path
     )
     # add the material binding API
-    mesh_payload.ApplyAPI('MaterialBindingAPI')
-
+    UsdShade.MaterialBindingAPI.Apply(mesh_payload)
     return mesh_payload
 
 
